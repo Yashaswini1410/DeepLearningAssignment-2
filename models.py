@@ -120,9 +120,9 @@ class VGG16(nn.Module):
             VGGBlock(256, 512, num_convs=3),
             VGGBlock(512, 512, num_convs=3)
         )
-        
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))        # added adaptive average pooling layer to reduce the dimensions to 1x1.
         self.classifier = nn.Sequential(
-            nn.Linear(2048, 1024),
+            nn.Linear(512, 1024),                          # 2048 -> 512 to match the output channels of the last conv layer
             nn.ReLU(inplace=True),
             nn.Dropout(p=drop_rate),
             nn.Linear(1024, 512),
@@ -133,6 +133,7 @@ class VGG16(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
+        x = self.avgpool(x)                                        # Apply adaptive average pooling
         x = torch.flatten(x, 1)
         return self.classifier(x)
 
