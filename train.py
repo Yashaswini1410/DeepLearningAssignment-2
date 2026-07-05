@@ -15,6 +15,9 @@ from fit import Trainer
 def main():   
     with open("config.json", "r") as f:
         config = json.load(f)
+    
+    torch.manual_seed(42)                          # addded a random seed for reproducibility
+
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training executing on device: {device}")
@@ -22,7 +25,7 @@ def main():
     train_loader, val_loader, _ = get_loaders(data=config["DATA"], data_path=config["DATA_PATH"], batch_size=config["BATCH_SIZE"])
 
     model_class = getattr(models, config["MODEL"])
-    model = model_class(in_channels=config["CHANNELS"], num_classes=config["NUM_CLASSES"], drop_rate=0.99, activation_str=None).to(device)
+    model = model_class(in_channels=config["CHANNELS"], num_classes=config["NUM_CLASSES"], drop_rate=config["DROP_RATE"], activation_str=config.get("ACTIVATION")).to(device)   # Read drop_rate and activation from config instead of hard coding
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config["LEARNING_RATE"])
 

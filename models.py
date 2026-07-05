@@ -6,7 +6,7 @@ MG 6/6/2026
 import torch
 import torch.nn as nn
 
-activation_str = "Identity"  # Placeholder for activation function, can be replaced with "ReLU" or others as needed.
+activation_str = "ReLU"  # added Relu
 
 
 class VGGBlock(nn.Module):
@@ -24,6 +24,8 @@ class VGGBlock(nn.Module):
             layers.append(nn.Conv2d(current_in_channels, out_channels, kernel_size=kernel_size, padding=padding))
             layers.append(nn.BatchNorm2d(out_channels))
             layers.append(nn.ReLU(inplace=True))
+            current_in_channels = out_channels     
+
             
         layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
         self.block = nn.Sequential(*layers)
@@ -62,13 +64,13 @@ class ResBlock(nn.Module):
 
 class AlexNet(nn.Module):
     """AlexNet (Krizhevsky et al., 2012) adapted for smaller inputs."""
-    def __init__(self, **kwargs):
+    def __init__(self, in_channels, num_classes, **kwargs):   #added in_channels and ouput chnannels 
         super().__init__()
 
         drop_rate = kwargs.get("drop_rate", 0.5)
         
         self.features = nn.Sequential(
-            nn.Conv2d(3, 48, kernel_size=7, stride=2, padding=3),
+            nn.Conv2d(in_channels, 48, kernel_size=7, stride=2, padding=3),   #added in_channels 
             nn.BatchNorm2d(48),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
@@ -86,19 +88,20 @@ class AlexNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
-        
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))                       #added Adativeaverage pooling layer to reduce  dimensions to 1x1.
         self.classifier = nn.Sequential(
             nn.Dropout(p=drop_rate),
-            nn.Linear(2048, 1024),
+            nn.Linear(192, 1024),                                         #2048 -> 192 to match the output channels of the last conv layer
             nn.ReLU(inplace=True),
             nn.Dropout(p=drop_rate),
             nn.Linear(1024, 1024),
             nn.ReLU(inplace=True),
-            nn.Linear(1024, 11),
+            nn.Linear(1024, num_classes),                                     #added num_classes to the final layer to match the number of output classes
         )
 
     def forward(self, x):
         x = self.features(x)
+        x = self.avgpool(x)                                        # Apply adaptive average pooling
         x = torch.flatten(x, 1)
         return self.classifier(x)
 
@@ -117,9 +120,9 @@ class VGG16(nn.Module):
             VGGBlock(256, 512, num_convs=3),
             VGGBlock(512, 512, num_convs=3)
         )
-        
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))        # added adaptive average pooling layer to reduce the dimensions to 1x1.
         self.classifier = nn.Sequential(
-            nn.Linear(2048, 1024),
+            nn.Linear(512, 1024),                          # 2048 -> 512 to match the output channels of the last conv layer
             nn.ReLU(inplace=True),
             nn.Dropout(p=drop_rate),
             nn.Linear(1024, 512),
@@ -130,6 +133,7 @@ class VGG16(nn.Module):
 
     def forward(self, x):
         x = self.features(x)
+        x = self.avgpool(x)                                        # Apply adaptive average pooling
         x = torch.flatten(x, 1)
         return self.classifier(x)
 
@@ -177,4 +181,4 @@ class ResNet18(nn.Module):
         out = self.stage4(out)
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
-        self.classifier(out)
+        return self.classifier(out)   # missing return  
