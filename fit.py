@@ -18,9 +18,10 @@ class Trainer:
         correct, sum = 0, 0
         
         for images, labels in dataloader:
-            images, labels = images.to(self.device), labels.to(self.device)
-            
+            images, labels = images.to(self.device), labels.to(self.device)          
+
             outputs = self.model(images)
+            # print(labels.shape, labels.dtype)     to debug  the label shape
             loss = self.criterion(outputs, labels)
             
             loss.backward()
