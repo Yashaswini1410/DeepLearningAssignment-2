@@ -18,7 +18,9 @@ class Trainer:
         correct, sum = 0, 0
         
         for images, labels in dataloader:
-            images, labels = images.to(self.device), labels.to(self.device)          
+            images, labels = images.to(self.device), labels.to(self.device)
+
+            self.optimizer.zero_grad()        # FIX: clear old gradients before each batch
 
             outputs = self.model(images)
             # print(labels.shape, labels.dtype)     to debug  the label shape
