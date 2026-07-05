@@ -10,5 +10,5 @@
   "DROP_RATE": 0.5,
   "ACTIVATION": "ReLU",
   "DATASETS": ["cells", "chest", "lesions", "orgs"],
-  "MODELS": ["AlexNet", "VGG16", "ResNet18"]
+  "MODELS": ["AlexNet", "VGG16", "ResNet18", "GreenResNet"]
 }
