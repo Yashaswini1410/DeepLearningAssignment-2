@@ -15,6 +15,9 @@ from fit import Trainer
 def main():   
     with open("config.json", "r") as f:
         config = json.load(f)
+    
+    torch.manual_seed(42)                          # addded a random seed for reproducibility
+
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training executing on device: {device}")
