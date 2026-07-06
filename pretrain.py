@@ -33,7 +33,7 @@ def main():
 
     #resnet 
     set_seed(42)  # Reset seed for reproducibility
-    model = models.ResNet18(in_channels=in_ch, num_classes=n_cls, drop_rate=config["DROP_RATE"]).to(device)
+    model = models.ResNet18(in_channels=in_ch, num_classes=n_cls).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 

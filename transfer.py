@@ -10,12 +10,15 @@ import json
 import torch
 import torch.nn as nn
 from sklearn.metrics import precision_score, recall_score, f1_score
-
+import torch.optim as optim
+from fit import Trainer
 from data import get_loaders
 import models
 
 CKPT        = "orgs_pretrained.pt"  
-TARGET_DATA = "organs"              
+TARGET_DATA = "organs"    
+TRANSFER_EPOCHS = 30      
+LR              = 1e-3    
 
 
 def set_seed(seed=42):
@@ -27,6 +30,12 @@ def new_model(in_ch, n_cls, device):
     # build a fresh ResNet18 of the right shape
     return models.ResNet18(in_channels=in_ch, num_classes=n_cls).to(device)
 
+def train(model, train_loader, val_loader, lr, epochs, device, params=None):
+    # params lets us train only PART of the model later (frozen regime); default = whole model
+    optimizer = optim.Adam(params or model.parameters(), lr=lr)
+    trainer = Trainer(model, nn.CrossEntropyLoss(), optimizer, device)
+    trainer.fit(train_loader, val_loader, epochs=epochs)
+    return model
 
 def test(model, test_loader, device):  # run the test images through the model and score the predictions
     model.eval()                       # eval mode -> BatchNorm uses stable running stats
@@ -61,6 +70,12 @@ def main():
     m.load_state_dict(torch.load(CKPT, map_location=device))   # pour in the orgs knowledge
     results["zero-shot"] = test(m, test_loader, device)
 
+    # --- scratch: random weights, train on organs (control baseline, NO transfer) ---
+    set_seed()
+    m = new_model(in_ch, n_cls, device)
+    train(m, tr, val, LR, TRANSFER_EPOCHS, device)
+    results["scratch"] = test(m, test_loader, device)
+    
     # --- results table ---
     print("\n===== TASK 3 RESULTS (organs test set, target >= 40% acc) =====")
     print(f"{'regime':<12}{'acc':>8}{'prec':>8}{'rec':>8}{'f1':>8}")
