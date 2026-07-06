@@ -1,8 +1,9 @@
 import json 
 import torch 
 import torch.nn as nn
+import torch.optim as optim
 
-from data import get_dataloader
+from data import get_loader
 import models
 
 from fit import Trainer
@@ -23,7 +24,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Running on:", device)
 
-    train_loader, val_loader, _ = get_dataloader(
+    train_loader, val_loader, _ = get_loader(
         data=SOURCE_DATA, data_path=config["DATA_PATH"], batch_size=config["BATCH_SIZE"])
     
     in_ch = train_loader.dataset.tensors[0].shape[1]
@@ -32,7 +33,7 @@ def main():
 
     #resnet 
     set_seed(42)  # Reset seed for reproducibility
-    model = models.ResNet(in_channels=in_ch, num_classes=n_cls, drop_rate=config["DROP_RATE"]).to(device)
+    model = models.ResNet18(in_channels=in_ch, num_classes=n_cls, drop_rate=config["DROP_RATE"]).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
