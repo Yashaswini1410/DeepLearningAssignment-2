@@ -75,13 +75,23 @@ def main():
     m = new_model(in_ch, n_cls, device)
     train(m, tr, val, LR, TRANSFER_EPOCHS, device)
     results["scratch"] = test(m, test_loader, device)
-    
+
     # --- fine-tune: load orgs weights, train ALL layers with a small lr (full transfer) ---
     set_seed()
     m = new_model(in_ch, n_cls, device)
     m.load_state_dict(torch.load(CKPT, map_location=device))   # start from orgs knowledge
     train(m, tr, val, FINETUNE_LR, TRANSFER_EPOCHS, device)    # adapt all layers, gently
     results["fine-tune"] = test(m, test_loader, device)
+
+    # --- frozen: load orgs weights, freeze backbone, train a fresh head only (safe transfer) ---
+    set_seed()
+    m = new_model(in_ch, n_cls, device)
+    m.load_state_dict(torch.load(CKPT, map_location=device))    # start from orgs knowledge
+    for p in m.parameters():
+        p.requires_grad = False                                 # lock the WHOLE network
+    m.classifier = nn.Linear(m.classifier.in_features, n_cls).to(device)  # fresh trainable head
+    train(m, tr, val, LR, TRANSFER_EPOCHS, device, params=m.classifier.parameters())  # head only
+    results["frozen"] = test(m, test_loader, device)
 
     # --- results table ---
     print("\n===== TASK 3 RESULTS (organs test set, target >= 40% acc) =====")
