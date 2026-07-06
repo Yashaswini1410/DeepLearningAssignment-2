@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from data import get_loader
+from data import get_loaders
 import models
 
 from fit import Trainer
@@ -24,7 +24,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Running on:", device)
 
-    train_loader, val_loader, _ = get_loader(
+    train_loader, val_loader, _ = get_loaders(
         data=SOURCE_DATA, data_path=config["DATA_PATH"], batch_size=config["BATCH_SIZE"])
     
     in_ch = train_loader.dataset.tensors[0].shape[1]
