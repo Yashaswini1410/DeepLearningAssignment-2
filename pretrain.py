@@ -10,7 +10,7 @@ from fit import Trainer
 
 SOURCE_DATA     = "orgs"                 
 CKPT            = "orgs_pretrained.pt"   
-PRETRAIN_EPOCHS = 18                     
+PRETRAIN_EPOCHS = 20                  
 LR              = 1e-3                    
 
 def set_seed(seed=42):
