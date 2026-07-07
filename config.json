@@ -9,6 +9,6 @@
   "EPOCHS": 20,
   "DROP_RATE": 0.2,
   "ACTIVATION": "ReLU",
-  "DATASETS": ["cells", "chest", "lesions", "orgs"],
+  "DATASETS": ["chest"],
   "MODELS": ["AlexNet", "VGG16", "ResNet18", "GreenResNet"]
 }
