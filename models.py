@@ -6,7 +6,7 @@ MG 6/6/2026
 import torch
 import torch.nn as nn
 
-activation_str = "ReLU"  # added Relu
+#activation_str = "ReLU"  # moved to config file
 
 
 class VGGBlock(nn.Module):
@@ -146,7 +146,7 @@ class ResNet18(nn.Module):
     def __init__(self, in_channels, num_classes, **kwargs):
         super().__init__()
 
-        activation = getattr(nn, activation_str)
+        activation = getattr(nn, kwargs.get("activation_str") or "ReLU") # read form config file
 
         self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)

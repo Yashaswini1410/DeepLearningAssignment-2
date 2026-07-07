@@ -58,14 +58,20 @@ class Trainer:
     def fit(self, train_loader, val_loader, epochs):
         print("\n Starting Training Routine...")
         print("-" * 50)
+        best_val_acc = 0.0                                                                          
+        best_state = {k: v.detach().cpu().clone() for k, v in self.model.state_dict().items()}
         
         for epoch in range(epochs):
             train_loss, train_acc = self.train_one_epoch(train_loader)
             val_loss, val_acc = self.evaluate(val_loader)
-            
+            if val_acc > best_val_acc:                                                              
+                best_val_acc = val_acc                                                              
+                best_state = {k: v.detach().cpu().clone() for k, v in self.model.state_dict().items()}  
+
             print(f"Epoch [{epoch+1:02d}/{epochs:02d}] | "
                   f"Train Loss: {train_loss:.4f} - Train Acc: {train_acc:.2f}% | "
                   f"Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.2f}%")
-        
+            
+        self.model.load_state_dict(best_state)   
         print("-" * 50)
-        print("Training Complete!")
+        print(f"Training Complete! Best Val Acc: {best_val_acc:.2f}%")
