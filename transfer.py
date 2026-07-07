@@ -19,7 +19,7 @@ CKPT        = "orgs_pretrained.pt"
 TARGET_DATA = "organs"    
 TRANSFER_EPOCHS = 30      
 LR              = 1e-3    
-FINETUNE_LR = 1e-3   
+FINETUNE_LR = 1e-4   
 
 def set_seed(seed=42):
     torch.manual_seed(seed)
