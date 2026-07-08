@@ -21,7 +21,8 @@ class VGGBlock(nn.Module):
         for i in range(num_convs):
             is_config_c_tail = (num_convs == 3 and i == 2)
             kernel_size = 1 if is_config_c_tail else 3
-            layers.append(nn.Conv2d(current_in_channels, out_channels, kernel_size=kernel_size, padding=padding))
+            conv_padding = 0 if is_config_c_tail else padding   #added padding
+            layers.append(nn.Conv2d(current_in_channels, out_channels, kernel_size=kernel_size, padding=conv_padding))                    
             layers.append(nn.BatchNorm2d(out_channels))
             layers.append(nn.ReLU(inplace=True))
             current_in_channels = out_channels     
@@ -182,3 +183,62 @@ class ResNet18(nn.Module):
         out = self.avgpool(out)
         out = torch.flatten(out, 1)
         return self.classifier(out)   # missing return  
+
+
+# reduced green initiative model    
+class GreenResNet(nn.Module):
+    def __init__(self, in_channels, num_classes, **kwargs):
+        super().__init__()
+        act = getattr(nn, kwargs.get("activation_str") or "ReLU")  # read from config
+        self.act = act
+        self.activation = act(inplace=True)
+ 
+        # stem
+        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(32)
+ 
+        # reduced-channel stages (32 -> 64 -> 128 -> 256), each with 2 bottleneck sub-blocks
+        self.stage1 = self._make_stage(32, 32, stride=1)
+        self.stage2 = self._make_stage(32, 64, stride=2)
+        self.stage3 = self._make_stage(64, 128, stride=2)
+        self.stage4 = self._make_stage(128, 256, stride=2)
+ 
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.classifier = nn.Linear(256, num_classes)
+ 
+    def _bottleneck(self, in_c, out_c, stride, reduction=4):
+        """One bottleneck sub-block: 1x1 squeeze -> 3x3 -> 1x1 restore (+ shortcut)."""
+        mid = max(out_c // reduction, 8)
+        body = nn.Sequential(
+            nn.Conv2d(in_c, mid, 1, bias=False), nn.BatchNorm2d(mid), self.act(inplace=True),
+            nn.Conv2d(mid, mid, 3, stride=stride, padding=1, bias=False), nn.BatchNorm2d(mid), self.act(inplace=True),
+            nn.Conv2d(mid, out_c, 1, bias=False), nn.BatchNorm2d(out_c),
+        )
+        shortcut = nn.Identity()
+        if stride != 1 or in_c != out_c:
+            shortcut = nn.Sequential(
+                nn.Conv2d(in_c, out_c, 1, stride=stride, bias=False), nn.BatchNorm2d(out_c)
+            )
+        return nn.ModuleDict({"body": body, "shortcut": shortcut})
+ 
+    def _make_stage(self, in_c, out_c, stride):
+        """A stage = two bottleneck sub-blocks; the first handles downsampling."""
+        return nn.ModuleList([
+            self._bottleneck(in_c, out_c, stride=stride),
+            self._bottleneck(out_c, out_c, stride=1),
+        ])
+ 
+    def _run_stage(self, stage, x):
+        for blk in stage:
+            x = self.activation(blk["body"](x) + blk["shortcut"](x))
+        return x
+ 
+    def forward(self, x):
+        out = self.activation(self.bn1(self.conv1(x)))
+        out = self._run_stage(self.stage1, out)
+        out = self._run_stage(self.stage2, out)
+        out = self._run_stage(self.stage3, out)
+        out = self._run_stage(self.stage4, out)
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        return self.classifier(out)
