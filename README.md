@@ -25,7 +25,7 @@ All models are configurable and executable from a single central configuration f
 |---|---|---|
 | Task 1 | Pipeline reconstruction, bug remediation, benchmarking infrastructure | `main` |
 | Task 2 | Green Initiative architectural downscaling and efficiency verification | `main` |
-| Task 3 | Transfer learning on the scarce `organs` dataset | `development-task3` |
+| Task 3 | Transfer learning on the `organs` dataset | `development-task3` |
 
 ---
 
