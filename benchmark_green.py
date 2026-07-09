@@ -14,6 +14,8 @@ from fit import Trainer
 def set_seed(seed=42):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True   # pin deterministic conv algorithms
+    torch.backends.cudnn.benchmark = False      # stop cuDNN re-autotuning each run
 
 def sync(device):
     if device.type == "cuda":
