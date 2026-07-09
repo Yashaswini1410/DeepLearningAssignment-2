@@ -17,10 +17,10 @@ For every entry: **(i)** file, **(ii)** how the problem manifests, **(iii)** the
 | 7 | `models.py` | Log prints `Using activation function: Identity()`; accuracy capped well below target. | `activation_str` defaulted to `"Identity"`, giving no non-linearity, a stack of linear layers collapses into a single linear map, so a deep net has no more capacity than one layer. | Set / read the activation as `ReLU`.| `42781cd`  |
 | 8 | `models.py` (`AlexNet`) | `RuntimeError: mat1 and mat2 shapes cannot be multiplied (64x3072 and 2048x1024)`. | The first `Linear` assumed a fixed flatten size (`2048`) that only holds for one input resolution, with no pooling to normalise spatial size. | Added `nn.AdaptiveAvgPool2d((1, 1))` before the flatten and set the classifier input to the channel count ( `192` AlexNet). | `58d7e11` |
 | 9| `models.py` (`AlexNet`) | Crashes on 1-channel datasets (chest, orgs, organs); wrong output size whenever class count ≠ 11. | The first conv hardcoded `Conv2d(3, …)` and the final layer hardcoded `Linear(1024, 11)`, ignoring `in_channels` / `num_classes`. | Parameterized the constructor: first conv uses `in_channels`, final linear uses `num_classes` (confirmed by inspection: cells/lesions = 3ch, chest/orgs/organs = 1ch). | `58d7e11` |
-| 10|`rainpy` / `models.py` | Loss frozen ~2.01, accuracy stuck ~19% every epoch. | `drop_rate` was hardcoded to `0.99`, zeroing ~99% of activations each forward pass, almost no signal survives, so the network cannot learn. | Read dropout from config (`config["DROP_RATE"]`, set to `0.5`). | `b2b1a4c` |
+| 10|`train.py` / `models.py` | Loss frozen ~2.01, accuracy stuck ~19% every epoch. | `drop_rate` was hardcoded to `0.99`, zeroing ~99% of activations each forward pass, almost no signal survives, so the network cannot learn. | Read dropout from config (`config["DROP_RATE"]`, set to `0.5`). | `b2b1a4c` |
 | 11|`models.py` (`VGGBlock`) | `RuntimeError: Given groups=1, weight of size [64,3,3,3], expected input to have 3 channels, but got 64`. | `current_in_channels` was never updated inside the conv loop, so the 2nd conv received the 1st conv's 64-channel output while still expecting 3. | Added `current_in_channels = out_channels` on each loop iteration. | `256641e` |
-| 12| `models.py` (`VGGBlock`,) | `RuntimeError: mat1 and mat2 shapes cannot be multiplied (64x3072 and 2048x1024)`. |The first `Linear` assumed a fixed flatten size (`2048`) that only holds for one input resolution, with no pooling to normalise spatial size | Added `nn.AdaptiveAvgPool2d((1, 1))` before the flatten and set the classifier input to the channel count (`512` VGG16). | `32b3bcb`
-| 13 | `train.py` | Different accuracy every run on the same setup (e.g. 47% vs 85%). | No fixed random seed, so weight initialisation and data shuffling differ each run. | Added `torch.manual_seed(42)` and `cuda.manual_seed_all`. | `4bbffe5` |
+| 12| `models.py` (`VGG16`) | `RuntimeError: mat1 and mat2 shapes cannot be multiplied (64x3072 and 2048x1024)`. |The first `Linear` assumed a fixed flatten size (`2048`) that only holds for one input resolution, with no pooling to normalise spatial size | Added `nn.AdaptiveAvgPool2d((1, 1))` before the flatten and set the classifier input to the channel count (`512` VGG16). | `32b3bcb` |
+| 13 | `train.py` | Different accuracy every run on the same setup (e.g. 47% vs 85%). | No fixed random seed, so weight initialisation and data shuffling differ each run. | Added `torch.manual_seed(42)` | `4bbffe5` |
 | 14 | `data.py` | No error; a class-sorted file can place whole classes only in train or only in val. | The split sliced the array in order, so class-ordered data produces a biased validation distribution. | Shuffled with a fixed-seed `torch.randperm` **before** slicing. | `b1e7da8` |
 | 15 | `fit.py` (`train_one_epoch`) | None, identical results before and after (latent anti-pattern). | `correct, sum = 0, 0` rebinds the name `sum` to an int, shadowing Python's built-in inside the function. | Renamed the counter to `total` (matching `evaluate`, which already used `total`). | `ffa249a` |
 
@@ -101,7 +101,7 @@ Ran, but frozen:
 
 ---
 
-## Bug 9 : Dropout set too high (0.99)
+## Bug 10 : Dropout set too high (0.99)
 
 **What we saw:** loss frozen at ~2.0 and accuracy stuck at ~19% (the table above). Dropping 99% of the activations left almost no signal for the network to learn from. After lowering dropout to 0.5, the loss dropped.
 
